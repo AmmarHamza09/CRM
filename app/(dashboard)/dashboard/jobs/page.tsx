@@ -280,10 +280,46 @@ export default function JobsPage() {
 
   const getPriorityColor = (priority: ProjectPriority) => {
     switch (priority) {
-      case ProjectPriority.HIGH: return 'bg-red-100 text-red-800';
-      case ProjectPriority.MEDIUM: return 'bg-yellow-100 text-yellow-800';
-      case ProjectPriority.LOW: return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case ProjectPriority.HIGH:
+        return {
+          bg: 'bg-red-100',
+          text: 'text-red-800',
+          calendar: {
+            bg: '#fee2e2',
+            border: '#ef4444',
+            text: '#991b1b'
+          }
+        };
+      case ProjectPriority.MEDIUM:
+        return {
+          bg: 'bg-yellow-100',
+          text: 'text-yellow-800',
+          calendar: {
+            bg: '#fef3c7',
+            border: '#f59e0b',
+            text: '#92400e'
+          }
+        };
+      case ProjectPriority.LOW:
+        return {
+          bg: 'bg-green-100',
+          text: 'text-green-800',
+          calendar: {
+            bg: '#dcfce7',
+            border: '#22c55e',
+            text: '#166534'
+          }
+        };
+      default:
+        return {
+          bg: 'bg-gray-100',
+          text: 'text-gray-800',
+          calendar: {
+            bg: '#f3f4f6',
+            border: '#9ca3af',
+            text: '#1f2937'
+          }
+        };
     }
   };
 
@@ -387,7 +423,7 @@ export default function JobsPage() {
                                 >
                                   <div className="flex justify-between items-start mb-2">
                                     <h3 className="font-medium">{project.title}</h3>
-                                    <Badge className={getPriorityColor(project.priority)}>
+                                    <Badge className={`${getPriorityColor(project.priority).bg} ${getPriorityColor(project.priority).text}`}>
                                       {project.priority}
                                     </Badge>
                                   </div>
@@ -429,17 +465,20 @@ export default function JobsPage() {
                 right: 'dayGridMonth,timeGridWeek,timeGridDay'
               }}
               initialView="dayGridMonth"
-              events={projects.map(project => ({
-                title: project.title,
-                start: new Date(project.startDate),
-                end: project.endDate ? new Date(project.endDate) : undefined,
-                backgroundColor: getPriorityColor(project.priority),
-                borderColor: getPriorityColor(project.priority),
-                textColor: '#fff',
-                extendedProps: {
-                  project
-                }
-              }))}
+              events={projects.map(project => {
+                const colors = getPriorityColor(project.priority).calendar;
+                return {
+                  title: project.title,
+                  start: new Date(project.startDate),
+                  end: project.endDate ? new Date(project.endDate) : undefined,
+                  backgroundColor: colors.bg,
+                  borderColor: colors.border,
+                  textColor: colors.text,
+                  extendedProps: {
+                    project
+                  }
+                };
+              })}
               eventClick={(info) => {
                 setSelectedProject(info.event.extendedProps.project);
                 setNewProject(info.event.extendedProps.project);

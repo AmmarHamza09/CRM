@@ -1,27 +1,13 @@
 "use client";
 
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
-import { format } from "date-fns";
-import { Plus } from "lucide-react";
-import Link from "next/link";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Download, Eye } from 'lucide-react';
+import { toast } from "react-hot-toast";
 
 interface Invoice {
   id: string;
@@ -32,7 +18,6 @@ interface Invoice {
   project: {
     title: string;
   };
-  createdAt: string;
 }
 
 export default function InvoicesPage() {
@@ -42,97 +27,127 @@ export default function InvoicesPage() {
 
   useEffect(() => {
     fetchInvoices();
-  }, []);
+  }, [session]);
 
   const fetchInvoices = async () => {
     try {
-      const response = await fetch("/api/invoices");
-      if (!response.ok) throw new Error("Failed to fetch invoices");
+      const response = await fetch('/api/invoices');
+      if (!response.ok) throw new Error('Failed to fetch invoices');
       const data = await response.json();
       setInvoices(data);
     } catch (error) {
-      console.error("Error fetching invoices:", error);
+      console.error('Error fetching invoices:', error);
+      toast.error('Failed to load invoices');
     } finally {
       setLoading(false);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "paid":
-        return "bg-green-500";
-      case "pending":
-        return "bg-yellow-500";
-      case "overdue":
-        return "bg-red-500";
-      default:
-        return "bg-gray-500";
+  const handleDownload = async (invoiceId: string) => {
+    try {
+      const response = await fetch(`/api/invoices/${invoiceId}/download`);
+      if (!response.ok) throw new Error('Failed to download invoice');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `invoice-${invoiceId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading invoice:', error);
+      toast.error('Failed to download invoice');
     }
   };
 
-  return (
-    <div className="container mx-auto py-10">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Invoices</h1>
-        <Button asChild>
-          <Link href="/dashboard/invoices/new">
-            <Plus className="mr-2 h-4 w-4" />
-            New Invoice
-          </Link>
-        </Button>
-      </div>
+  const handleView = async (invoiceId: string) => {
+    try {
+      const response = await fetch(`/api/invoices/${invoiceId}/view`);
+      if (!response.ok) throw new Error('Failed to view invoice');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (error) {
+      console.error('Error viewing invoice:', error);
+      toast.error('Failed to view invoice');
+    }
+  };
 
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'paid':
+        return 'bg-green-100 text-green-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'overdue':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  if (loading) {
+    return <div className="p-8">Loading invoices...</div>;
+  }
+
+  return (
+    <div className="p-8">
       <Card>
         <CardHeader>
-          <CardTitle>All Invoices</CardTitle>
-          <CardDescription>
-            Manage and track all your invoices in one place.
-          </CardDescription>
+          <CardTitle>Invoices</CardTitle>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div>Loading...</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Invoice Number</TableHead>
-                  <TableHead>Project</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Due Date</TableHead>
-                  <TableHead>Created At</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {invoices.map((invoice) => (
-                  <TableRow key={invoice.id}>
-                    <TableCell>
-                      <Link
-                        href={`/dashboard/invoices/${invoice.id}`}
-                        className="text-blue-600 hover:underline"
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Invoice Number</TableHead>
+                <TableHead>Project</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Due Date</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {invoices.map((invoice) => (
+                <TableRow key={invoice.id}>
+                  <TableCell>{invoice.invoiceNumber}</TableCell>
+                  <TableCell>{invoice.project.title}</TableCell>
+                  <TableCell>${invoice.amount.toFixed(2)}</TableCell>
+                  <TableCell>{new Date(invoice.dueDate).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    <Badge className={getStatusColor(invoice.status)}>
+                      {invoice.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleView(invoice.id)}
                       >
-                        {invoice.invoiceNumber}
-                      </Link>
-                    </TableCell>
-                    <TableCell>{invoice.project.title}</TableCell>
-                    <TableCell>${invoice.amount.toFixed(2)}</TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(invoice.status)}>
-                        {invoice.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {format(new Date(invoice.dueDate), "MMM dd, yyyy")}
-                    </TableCell>
-                    <TableCell>
-                      {format(new Date(invoice.createdAt), "MMM dd, yyyy")}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+                        <Eye className="h-4 w-4 mr-2" />
+                        View
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownload(invoice.id)}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>

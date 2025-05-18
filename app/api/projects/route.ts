@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { authOptions } from "@/config/auth";
 import { prisma } from "@/lib/prisma";
 import { ProjectType, ProjectStatus, ProjectPriority, Prisma } from "@prisma/client";
 
@@ -26,59 +26,43 @@ async function generateUniqueTitle(baseTitle: string, userId: string): Promise<s
   }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    console.log("GET /api/projects - Starting request");
     const session = await getServerSession(authOptions);
-    console.log("GET /api/projects - Session:", session);
-
-    if (!session?.user?.email) {
-      console.log("GET /api/projects - No session or email found");
+    if (!session?.user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user) {
-      console.log("GET /api/projects - User not found for email:", session.user.email);
-      return new NextResponse("User not found", { status: 404 });
-    }
-
-    console.log("GET /api/projects - Fetching projects for user:", user.id);
+    const { searchParams } = new URL(req.url);
+    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
     const projects = await prisma.project.findMany({
       where: {
-        userId: user.id,
+        userId: session.user.id,
       },
-      include: {
-        modules: {
-          select: {
-            id: true,
-          },
-        },
-        members: {
-          select: {
-            id: true,
-          },
-        },
-        invoices: {
-          select: {
-            id: true,
-          },
-        },
+      select: {
+        id: true,
+        title: true,
+        endDate: true,
+        status: true,
+        priority: true,
+        location: true,
+        type: true,
+        company: true,
+        description: true,
+        client: true,
+        budget: true,
       },
       orderBy: {
-        createdAt: "desc",
+        endDate: 'asc',
       },
+      take: limit,
     });
 
-    console.log("GET /api/projects - Found projects:", projects.length);
     return NextResponse.json(projects);
   } catch (error) {
-    console.error("[PROJECTS_GET] Error:", error);
-    return new NextResponse("Internal error", { status: 500 });
+    console.error("[PROJECTS_GET]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 }
 

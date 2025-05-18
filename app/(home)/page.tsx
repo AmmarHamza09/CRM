@@ -36,12 +36,12 @@ export default async function Home() {
           <CustomLinkButton title="Let's get started" href="/login" />
           <div className="pt-8 pb-4 flex items-center  justify-center gap-8">
             <div className="">
-              <AnimatedAvatars />
+              {/* <AnimatedAvatars /> */}
             </div>
-            <div className="">
+            {/* <div className="">
               <StarRating count={5} />
               <p className="dark:text-slate-900">{count} 500+ teams delivering projects faster.</p>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

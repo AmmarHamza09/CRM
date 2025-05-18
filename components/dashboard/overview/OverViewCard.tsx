@@ -9,16 +9,31 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 
-export default function Component() {
+enum ProjectPriority {
+  LOW = "LOW",
+  MEDIUM = "MEDIUM",
+  HIGH = "HIGH"
+}
+
+interface OverViewCard{
+  title: string,
+  priority: ProjectPriority,
+  endDate?: Date
+}
+
+export default function Component({
+  title,
+  priority,
+  endDate
+}: OverViewCard) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">Sales</CardTitle>
-        <CreditCard className="h-4 w-4 text-muted-foreground" />
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">+12,234</div>
-        <p className="text-xs text-muted-foreground">+19% from last month</p>
+        <div className="text-2xl font-bold">{priority}</div>
+        <p className="text-xs text-muted-foreground">{new Date(endDate).toLocaleDateString()}</p>
       </CardContent>
     </Card>
   )
